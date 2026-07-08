@@ -9,6 +9,7 @@ Inspired by musical loop stations, the application allows users to record succes
 The application runs entirely in the browser using only HTML, CSS, and JavaScript, requiring no installation or additional software.
 
 Features
+
 🎥 Record up to 6 synchronized video loops
 
 ⏱️ Maximum recording duration of 90 seconds
