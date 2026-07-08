@@ -10,14 +10,23 @@ The application runs entirely in the browser using only HTML, CSS, and JavaScrip
 
 Features
 🎥 Record up to 6 synchronized video loops
+
 ⏱️ Maximum recording duration of 90 seconds
+
 🔁 Automatic looping and synchronized playback
+
 ▶️ Play and pause individual recordings
+
 ♻️ Re-record individual clips
+
 🗑️ Delete recordings
+
 📺 Dynamic split-screen layout
+
 ⏳ 3-second countdown before recording
+
 📦 Export recordings as:
+
 MP4 (video)
 MP3 (audio only)
 
