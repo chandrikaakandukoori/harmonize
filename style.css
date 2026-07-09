@@ -26,3 +26,6 @@ button{
     border:3px solid rgb(113, 113, 231);
     border-radius:10px;
 }
+#camera-preview{
+    transform: scaleX(-1);  
+}
