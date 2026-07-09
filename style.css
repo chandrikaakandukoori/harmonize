@@ -1,31 +1,146 @@
 body{
-    background:black;
-    color:white;
-    text-align:center;
-    font-family:Arial;
+
+    margin:0;
+
+    background:#111;
+
+    font-family:Arial, sans-serif;
+
+    overflow:hidden;
+
 }
 
-button{
-    padding:15px;
-    border-radius:10px;
-    
+#timer{
+
+    position:fixed;
+
+    top:20px;
+
+    left:50%;
+
+    transform:translateX(-50%);
+
+    color:white;
+
+    font-size:28px;
+
+    font-weight:bold;
+
+    z-index:1000;
+
+}
+
+#status{
+
+    font-size:22px;
+
+}
+
+
+.videoContainer{
+
+    width:100vw;
+
+    height:100vh;
+
+    display:flex;
+
+    justify-content:center;
+
+    align-items:center;
+
+}
+
+#camera-preview{
+
+    position:fixed;
+
+    top:0;
+
+    left:0;
+
+    width:100vw;
+
+    height:100vh;
+
+    object-fit:cover;
+
+    transform:scaleX(-1);
+
+}
+
+#app_name{
+
+    position:absolute;
+
+    top:50%;
+
+    left:50%;
+
+    transform:translate(-50%,-50%);
+
+    color:white;
+
+    font-size:72px;
+
+    font-weight:bold;
+
+    font-family:Georgia, "Times New Roman", serif;
+
+    letter-spacing:4px;
+
+    z-index:1000;
+
+    user-select:none;
+
 }
 
 .controlBar{
+
     position:fixed;
-    bottom:0;
+
+    bottom:20px;
+
+    left:50%;
+
+    transform:translateX(-50%);
+
     display:flex;
-    width:100%;
-    justify-content:center;
-    color:grey;
+
+    gap:15px;
+
+    padding:15px 25px;
+
+    border-radius:20px;
+
+    background:rgba(255,255,255,0.15);
+
+    backdrop-filter:blur(12px);
+    z-index:1000;
+
+
 }
 
-#camera-preview{
-    width: 1920px;
-    height:1080px;
-    border:3px solid rgb(113, 113, 231);
-    border-radius:10px;
+button{
+
+    background:#444;
+
+    color:white;
+
+    border:none;
+
+    border-radius:12px;
+
+    padding:12px 20px;
+
+    cursor:pointer;
+
+    font-size:16px;
+
 }
-#camera-preview{
-    transform: scaleX(-1);  
+
+button:hover{
+
+    background:#666;
+
 }
