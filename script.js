@@ -4,21 +4,39 @@ let stream = null;
 let mediaRecorder = null;
 let recordedChunks = [];
 let recordingInterval = null;
+let isRecording = false;
 
 const timer = document.getElementById("timer");
 const video = document.getElementById("camera-preview");
 const recordButton = document.getElementById("recordButton");
 const harmonize = document.getElementById("app_name");
 
+
 // ===== Events =====
 
-recordButton.addEventListener("click", startRecording);
+recordButton.addEventListener("click", handleRecordButton);
 
 // ===== Record =====
 
+function handleRecordButton(){
+
+    if(!isRecording){
+
+        startRecording();
+
+    }
+
+    else{
+
+        stopRecording();
+
+    }
+
+}
+
 async function startRecording() {
 
-    recordButton.disabled = true;
+     
     
 
     try {
@@ -63,6 +81,10 @@ async function startRecording() {
         harmonize.style.display = "none";
 
         mediaRecorder.start();
+
+        isRecording = true;
+
+        recordButton.innerHTML = "🟥 Stop";
 
         let timeLeft = 90;
 
@@ -120,11 +142,18 @@ function stopRecording(){
 
     timer.textContent = "Finished";
 
-    recordButton.disabled = false;
+    
 
     console.log(recordedChunks);
 
+    isRecording = false;
+
+    recordButton.innerHTML = "🔴 Record";
+
+
 }
+
+
 
 // ===== Helpers =====
 
