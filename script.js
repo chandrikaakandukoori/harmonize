@@ -4,9 +4,10 @@ async function startCamera() {
         video: {
             height: { ideal: 1080}, // Ideal height for the video
             width: { ideal: 1920},  // Ideal width for the video
+            
             facingMode: "user" // Use 'user' for front camera, 'environment' for rear
         },
-        audio: false 
+        audio: true 
     };
 
     try {
