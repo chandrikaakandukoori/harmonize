@@ -1,22 +1,24 @@
 // ===== Variables =====
 
+
 let stream = null;
 let mediaRecorder = null;
 let recordedChunks = [];
-let recordingInterval = null;
+let recordingInterval = null; 
 let isRecording = false;
 
+
+const videoContainer = document.getElementById("videoContainer");
+const preview = document.getElementById("preview");
+const recordedVideo = document.getElementById("recordedVideo");
 const timer = document.getElementById("timer");
 const video = document.getElementById("camera-preview");
 const recordButton = document.getElementById("recordButton");
 const harmonize = document.getElementById("app_name");
 
-
-// ===== Events =====
-
+ 
 recordButton.addEventListener("click", handleRecordButton);
-
-// ===== Record =====
+ 
 
 function handleRecordButton(){
 
@@ -41,7 +43,7 @@ async function startRecording() {
 
     try {
 
-        // Ask for camera + microphone
+   
         stream = await navigator.mediaDevices.getUserMedia({
             video: true,
             audio: true
@@ -56,7 +58,12 @@ async function startRecording() {
 
         video.srcObject = stream;
 
-        mediaRecorder = new MediaRecorder(stream);
+        
+
+     
+video.style.display = "block";
+recordedVideo.style.display = "none";
+mediaRecorder = new MediaRecorder(stream);
 
         recordedChunks = [];
 
@@ -70,7 +77,41 @@ async function startRecording() {
 
         };
 
-        // 3-second countdown
+      mediaRecorder.onstop = function () {
+
+    console.log("STOPPED");
+    console.log("Chunks:", recordedChunks.length);
+
+    const blob = new Blob(recordedChunks, {
+        type: "video/webm; codecs=vp8,opus"
+    });
+
+    console.log("Blob size:", blob.size);
+
+    const url = URL.createObjectURL(blob);
+
+    console.log("URL:", url);
+
+    const recordedVideo = document.getElementById("recordedVideo");
+
+    recordedVideo.src = url;
+    recordedVideo.srcObject = null; 
+
+    console.log("video element:", recordedVideo);
+    console.log("video source:", recordedVideo.src);
+    recordedVideo.controls = true;
+
+    recordedVideo.style.display = "block";
+    recordedVideo.load();         
+ 
+video.style.display = "none";
+recordedVideo.style.display = "block";    
+
+console.log("Video attached:", recordedVideo.src);
+
+};  
+
+      
         for(let i = 3; i > 0; i--){
 
             timer.textContent = i;
@@ -118,33 +159,24 @@ async function startRecording() {
 
 }
 
-// ===== Stop =====
 
 function stopRecording(){
 
     clearInterval(recordingInterval);
 
-    if(mediaRecorder){
+    if(mediaRecorder && mediaRecorder.state === "recording"){
 
-        mediaRecorder.stop();
+    mediaRecorder.stop();
 
-    }
+}
 
-    if(stream){
-
-        stream.getTracks().forEach(function(track){
-
-            track.stop();
-
-        });
-
-    }
+    
 
     timer.textContent = "Finished";
 
     
 
-    console.log(recordedChunks);
+    
 
     isRecording = false;
 
@@ -154,8 +186,7 @@ function stopRecording(){
 }
 
 
-
-// ===== Helpers =====
+ 
 
 function wait(ms){
 
