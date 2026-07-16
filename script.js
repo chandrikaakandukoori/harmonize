@@ -1,3 +1,8 @@
+/**
+ * Harmonize - Video Loop Station
+ * Stable Layout, Stream Engine & Sync Countdown
+ */
+
 // Application State
 let liveStream = null;
 let mediaRecorder = null;
@@ -54,6 +59,9 @@ function initiateRecordingSequence() {
     return;
   }
 
+  // CRITICAL FIX: Explicitly stop/pause all existing playback tracks for the countdown duration
+  pauseAllLoops();
+
   let countdownValue = 3;
   countdownOverlay.style.display = 'flex';
   countdownOverlay.textContent = countdownValue;
@@ -90,7 +98,7 @@ function startRecording() {
 
   mediaRecorder.onstop = handleRecordingStop;
 
-  // Sync background tracks
+  // CRITICAL FIX: Reset and launch background tracks simultaneously with the new recording run
   playAllLoops();
 
   mediaRecorder.start();
@@ -153,6 +161,9 @@ function handleRecordingStop() {
 function playAllLoops() {
   isPlaying = true;
   recordings.forEach(rec => {
+    // Skip if we are currently re-recording this exact track
+    if (isRecording && rec.id === targetReRecordId) return;
+    
     rec.element.currentTime = 0;
     rec.element.play().catch(() => {});
   });
@@ -203,7 +214,7 @@ function renderGridLayout() {
   const recordedTiles = videoGrid.querySelectorAll('.recorded-tile');
   recordedTiles.forEach(tile => tile.remove());
 
-  // Show/Hide live preview via pure layout tokens rather than structural tearing
+  // Show/Hide live preview based on recording parameters
   const showLivePreview = recordings.length === 0 || isRecording;
   
   if (showLivePreview) {
@@ -217,7 +228,6 @@ function renderGridLayout() {
 
   recordings.forEach(rec => {
     if (isRecording && rec.id === targetReRecordId) {
-      // Don't show the video track we are currently re-recording over
       return;
     }
 
