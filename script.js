@@ -1,209 +1,275 @@
-// ===== Variables =====
-
-
-let stream = null;
+// Application State
+let liveStream = null;
 let mediaRecorder = null;
 let recordedChunks = [];
-let recordingInterval = null; 
+let recordings = []; // Holds: { id, blobUrl, element, wrapper }
 let isRecording = false;
+let isPlaying = false;
+let recordingTimer = null;
+let recordingDuration = 90; // Counts DOWN from 90 seconds (1:30)
+let targetReRecordId = null; 
+let selectedLoopId = null;
 
+// DOM Selectors
+const videoGrid = document.getElementById('videoGrid');
+const livePreview = document.getElementById('preview');
+const timerDisplay = document.getElementById('timer');
+const statusDisplay = document.getElementById('status');
 
-const videoContainer = document.getElementById("videoContainer");
-const preview = document.getElementById("preview");
-const recordedVideo = document.getElementById("recordedVideo");
-const timer = document.getElementById("timer");
-const video = document.getElementById("camera-preview");
-const recordButton = document.getElementById("recordButton");
-const harmonize = document.getElementById("app_name");
+const playButton = document.getElementById('playButton');
+const pauseButton = document.getElementById('pauseButton');
+const recordButton = document.getElementById('recordButton');
+const deleteButton = document.getElementById('deleteButton');
+const rerecordButton = document.getElementById('rerecordButton');
 
- 
-recordButton.addEventListener("click", handleRecordButton);
- 
+// Create countdown overlay element dynamically
+const countdownOverlay = document.createElement('div');
+countdownOverlay.id = 'countdown-overlay';
+document.body.appendChild(countdownOverlay);
 
-function handleRecordButton(){
-
-    if(!isRecording){
-
-        startRecording();
-
-    }
-
-    else{
-
-        stopRecording();
-
-    }
-
+// Initialize Stream Capture Pipeline
+async function init() {
+  setupEventListeners();
+  await startLivePreview();
+  updateUI();
 }
 
-async function startRecording() {
-
-     
-    
-
-    try {
-
-   
-        stream = await navigator.mediaDevices.getUserMedia({
-            video: true,
-            audio: true
-        });
-
-        // Check if microphone exists
-        if(stream.getAudioTracks().length === 0){
-
-            alert("No microphone detected.");
-
-        }
-
-        video.srcObject = stream;
-
-        
-
-     
-video.style.display = "block";
-recordedVideo.style.display = "none";
-mediaRecorder = new MediaRecorder(stream);
-
-        recordedChunks = [];
-
-        mediaRecorder.ondataavailable = function(event){
-
-            if(event.data.size > 0){
-
-                recordedChunks.push(event.data);
-
-            }
-
-        };
-
-      mediaRecorder.onstop = function () {
-
-    console.log("STOPPED");
-    console.log("Chunks:", recordedChunks.length);
-
-    const blob = new Blob(recordedChunks, {
-        type: "video/webm; codecs=vp8,opus"
+async function startLivePreview() {
+  try {
+    liveStream = await navigator.mediaDevices.getUserMedia({
+      video: { width: { ideal: 1280 }, height: { ideal: 720 } },
+      audio: true
     });
+    livePreview.srcObject = liveStream;
+  } catch (err) {
+    console.error("Accessing media hardware failed:", err);
+    statusDisplay.textContent = "Error: Check Camera/Mic Permissions";
+  }
+}
 
-    console.log("Blob size:", blob.size);
+// Handles the 3, 2, 1 countdown intercept before recording starts
+function initiateRecordingSequence() {
+  if (recordings.length >= 6 && targetReRecordId === null) {
+    alert("Maximum limit of 6 loops hit. Remove a tile to continue.");
+    return;
+  }
 
-    const url = URL.createObjectURL(blob);
+  let countdownValue = 3;
+  countdownOverlay.style.display = 'flex';
+  countdownOverlay.textContent = countdownValue;
+  statusDisplay.textContent = "Get Ready...";
+  
+  // Disable buttons during countdown phase
+  recordButton.disabled = true;
 
-    console.log("URL:", url);
+  const countdownInterval = setInterval(() => {
+    countdownValue--;
+    if (countdownValue > 0) {
+      countdownOverlay.textContent = countdownValue;
+    } else {
+      clearInterval(countdownInterval);
+      countdownOverlay.style.display = 'none';
+      recordButton.disabled = false;
+      startRecording();
+    }
+  }, 1000);
+}
 
-    const recordedVideo = document.getElementById("recordedVideo");
+function startRecording() {
+  recordedChunks = [];
+  const options = { mimeType: 'video/webm;codecs=vp8,opus' };
+  try {
+    mediaRecorder = new MediaRecorder(liveStream, options);
+  } catch (e) {
+    mediaRecorder = new MediaRecorder(liveStream); 
+  }
 
-    recordedVideo.src = url;
-    recordedVideo.srcObject = null; 
+  mediaRecorder.ondataavailable = (e) => {
+    if (e.data && e.data.size > 0) recordedChunks.push(e.data);
+  };
 
-    console.log("video element:", recordedVideo);
-    console.log("video source:", recordedVideo.src);
-    recordedVideo.controls = true;
+  mediaRecorder.onstop = handleRecordingStop;
 
-    recordedVideo.style.display = "block";
-    recordedVideo.load();         
- 
-video.style.display = "none";
-recordedVideo.style.display = "block";    
+  // Sync background tracks
+  playAllLoops();
 
-console.log("Video attached:", recordedVideo.src);
+  mediaRecorder.start();
+  isRecording = true;
+  statusDisplay.textContent = "Recording...";
+  
+  recordingDuration = 90; // Reset to 1 minute 30 seconds
+  updateTimerDisplay();
+  
+  recordingTimer = setInterval(() => {
+    recordingDuration--;
+    updateTimerDisplay();
+    if (recordingDuration <= 0) {
+      stopRecording();
+    }
+  }, 1000);
 
-};  
+  updateUI();
+}
 
-      
-        for(let i = 3; i > 0; i--){
+function stopRecording() {
+  if (!isRecording) return;
+  clearInterval(recordingTimer);
+  mediaRecorder.stop();
+  isRecording = false;
+}
 
-            timer.textContent = i;
+function handleRecordingStop() {
+  const blob = new Blob(recordedChunks, { type: 'video/webm' });
+  const blobUrl = URL.createObjectURL(blob);
 
-            await wait(1000);
+  const videoEl = document.createElement('video');
+  videoEl.src = blobUrl;
+  videoEl.loop = true;
+  videoEl.playsInline = true;
+  
+  const wrapper = document.createElement('div');
+  wrapper.className = 'video-tile recorded-tile';
 
-        }
-        harmonize.style.display = "none";
+  if (targetReRecordId !== null) {
+    const index = recordings.findIndex(r => r.id === targetReRecordId);
+    if (index !== -1) {
+      URL.revokeObjectURL(recordings[index].blobUrl);
+      recordings[index].blobUrl = blobUrl;
+      recordings[index].element = videoEl;
+      recordings[index].wrapper = wrapper;
+    }
+    targetReRecordId = null;
+  } else {
+    const recordingId = 'loop-' + Date.now();
+    recordings.push({ id: recordingId, blobUrl, element: videoEl, wrapper });
+  }
 
-        mediaRecorder.start();
+  statusDisplay.textContent = "Finished";
+  playAllLoops();
+  updateUI();
+}
 
-        isRecording = true;
+// Synchronized Multitrack System
+function playAllLoops() {
+  isPlaying = true;
+  recordings.forEach(rec => {
+    rec.element.currentTime = 0;
+    rec.element.play().catch(() => {});
+  });
+  updateUI();
+}
 
-        recordButton.innerHTML = "🟥 Stop";
+function pauseAllLoops() {
+  isPlaying = false;
+  recordings.forEach(rec => rec.element.pause());
+  updateUI();
+}
 
-        let timeLeft = 90;
+// Tile Modifier System
+function toggleSelectLoop(id) {
+  selectedLoopId = (selectedLoopId === id) ? null : id;
+  recordings.forEach(rec => {
+    if (rec.id === selectedLoopId) {
+      rec.wrapper.classList.add('selected-tile');
+    } else {
+      rec.wrapper.classList.remove('selected-tile');
+    }
+  });
+  updateUI();
+}
 
-        timer.textContent = "🔴 " + formatTime(timeLeft);
+function deleteSelectedLoop() {
+  if (!selectedLoopId) return;
+  const index = recordings.findIndex(r => r.id === selectedLoopId);
+  if (index !== -1) {
+    URL.revokeObjectURL(recordings[index].blobUrl);
+    recordings.splice(index, 1);
+  }
+  selectedLoopId = null;
+  updateUI();
+  if (isPlaying) playAllLoops();
+}
 
-        recordingInterval = setInterval(function(){
+function triggerReRecord() {
+  if (!selectedLoopId) return;
+  targetReRecordId = selectedLoopId;
+  selectedLoopId = null;
+  initiateRecordingSequence();
+}
 
-            timeLeft--;
+// Balanced Grid Engine
+function renderGridLayout() {
+  // Clear out old recorded loop elements only (keep livePreview safe)
+  const recordedTiles = videoGrid.querySelectorAll('.recorded-tile');
+  recordedTiles.forEach(tile => tile.remove());
 
-            timer.textContent = "🔴 " + formatTime(timeLeft);
+  // Show/Hide live preview via pure layout tokens rather than structural tearing
+  const showLivePreview = recordings.length === 0 || isRecording;
+  
+  if (showLivePreview) {
+    livePreview.style.display = 'block';
+  } else {
+    livePreview.style.display = 'none';
+  }
 
-            if(timeLeft <= 0){
+  // Populate dynamic recorded tiles
+  let visibleCount = showLivePreview ? 1 : 0;
 
-                stopRecording();
-
-            }
-
-        },1000);
-
+  recordings.forEach(rec => {
+    if (isRecording && rec.id === targetReRecordId) {
+      // Don't show the video track we are currently re-recording over
+      return;
     }
 
-    catch(error){
-
-        console.error(error);
-
-        alert("Please allow camera and microphone permissions.");
-
-        recordButton.disabled = false;
-
-    }
-
-}
-
-
-function stopRecording(){
-
-    clearInterval(recordingInterval);
-
-    if(mediaRecorder && mediaRecorder.state === "recording"){
-
-    mediaRecorder.stop();
-
-}
-
+    rec.wrapper.innerHTML = ''; 
+    rec.wrapper.appendChild(rec.element);
     
+    rec.wrapper.onclick = () => {
+      if (!isRecording) toggleSelectLoop(rec.id);
+    };
 
-    timer.textContent = "Finished";
+    videoGrid.appendChild(rec.wrapper);
+    visibleCount++;
+  });
 
-    
+  // Apply layout classifications onto grid structural bounds
+  videoGrid.className = ''; 
 
-    
-
-    isRecording = false;
-
-    recordButton.innerHTML = "🔴 Record";
-
-
+  if (visibleCount === 1) videoGrid.classList.add('grid-1-tile');
+  else if (visibleCount === 2) videoGrid.classList.add('grid-2-tiles');
+  else if (visibleCount <= 4) videoGrid.classList.add('grid-4-tiles');
+  else if (visibleCount <= 6) videoGrid.classList.add('grid-6-tiles');
 }
 
+function updateUI() {
+  recordButton.innerHTML = isRecording ? "⏹ Stop" : "🔴 Record";
+  
+  if (isRecording) {
+    playButton.disabled = pauseButton.disabled = deleteButton.disabled = rerecordButton.disabled = true;
+  } else {
+    playButton.disabled = pauseButton.disabled = (recordings.length === 0);
+    deleteButton.disabled = rerecordButton.disabled = !selectedLoopId;
+  }
 
- 
-
-function wait(ms){
-
-    return new Promise(function(resolve){
-
-        setTimeout(resolve,ms);
-
-    });
-
+  if (recordings.length === 0 && !isRecording) {
+    statusDisplay.textContent = "Ready";
+    timerDisplay.textContent = "01:30";
+  }
+  renderGridLayout();
 }
 
-function formatTime(seconds){
-
-    let minutes = Math.floor(seconds / 60);
-
-    let secs = seconds % 60;
-
-    return `${minutes}:${secs.toString().padStart(2,"0")}`;
-
+function updateTimerDisplay() {
+  const mins = String(Math.floor(recordingDuration / 60)).padStart(2, '0');
+  const secs = String(recordingDuration % 60).padStart(2, '0');
+  timerDisplay.textContent = `${mins}:${secs}`;
 }
+
+function setupEventListeners() {
+  recordButton.onclick = () => isRecording ? stopRecording() : initiateRecordingSequence();
+  playButton.onclick = playAllLoops;
+  pauseButton.onclick = pauseAllLoops;
+  deleteButton.onclick = deleteSelectedLoop;
+  rerecordButton.onclick = triggerReRecord;
+}
+
+window.onload = init;
