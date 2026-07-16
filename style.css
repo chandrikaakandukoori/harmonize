@@ -22,6 +22,7 @@ body {
   position: absolute;
   top: 16px;
   left: 24px;
+  font-family: "Georgia", "Times New Roman", serif;
   font-size: 20px;
   font-weight: 500;
   z-index: 10;
@@ -46,13 +47,11 @@ body {
   top: 16px;
   left: 50%;
   transform: translateX(-50%);
-  background: rgba(234, 67, 53, 0.85); 
   padding: 6px 16px;
   border-radius: 4px;
   font-weight: bold;
   font-variant-numeric: tabular-nums;
   z-index: 10;
-  border: 1px solid rgba(255, 255, 255, 0.15);
 }
 
 /* 3-2-1 Fullscreen Screen Count Module */
