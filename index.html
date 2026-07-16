@@ -3,38 +3,44 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Harmonize</title>
+    <title>Harmonize – Browser-Based Video Loop Station</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-    <!-- HUD Overlay Displays -->
+    
+    <div id="welcome-screen">
+        <div class="welcome-content">
+            <h1 id = "app-title">Harmonize.</h1>
+            
+            <button id="permissionButton">Grant Camera & Mic Access</button>
+        </div>
+    </div>
+
+     
     <div id="app_name">Harmonize.</div>
     <div id="status">Ready</div>
     <div id="timer">01:30</div>
 
-    <!-- Main Dynamic Workspace Component -->
+     
     <main id="workspace">
-        <!-- JavaScript alters classes here dynamically to reshape layouts -->
+        
         <div id="videoGrid" class="grid-1-tile">
-            
             <video id="preview" autoplay muted playsinline></video>
             
-            <!-- Loop elements are appended here dynamically by script.js -->
-
         </div>
     </main>
 
-    <!-- Fixed Bottom Control Bar Module -->
+     
     <div class="controlBar">
-        <button id="playButton" disabled>▶ Play</button>
-        <button id="pauseButton" disabled>⏸ Pause</button>
-        <button id="recordButton">🔴 Record</button>
-        <button id="deleteButton" disabled>🗑 Delete</button>
-        <button id="rerecordButton" disabled>🔄 Re-record</button>
+        <button id="playButton" disabled>▶ </button>
+        <button id="pauseButton" disabled>⏸ </button>
+        <button id="recordButton" disabled>🔴  </button>
+        <button id="deleteButton" disabled>🗑  </button>
+        <button id="rerecordButton" disabled>🔄  </button>
     </div>
 
-    <!-- Core Logic Connection Point -->
+     
     <script src="script.js"></script>
 
 </body>
