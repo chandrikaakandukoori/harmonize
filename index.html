@@ -1,76 +1,41 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
     <title>Harmonize</title>
-
     <link rel="stylesheet" href="style.css">
-
 </head>
-
 <body>
+
+    <!-- HUD Overlay Displays -->
     <div id="app_name">Harmonize.</div>
+    <div id="status">Ready</div>
+    <div id="timer">01:30</div>
 
-    <div class="overlay">
+    <!-- Main Dynamic Workspace Component -->
+    <main id="workspace">
+        <!-- JavaScript alters classes here dynamically to reshape layouts -->
+        <div id="videoGrid" class="grid-1-tile">
+            
+            <video id="preview" autoplay muted playsinline></video>
+            
+            <!-- Loop elements are appended here dynamically by script.js -->
 
-    <div id="status">
-        Harmonize
-    </div>
+        </div>
+    </main>
 
-    <div id="timer">
-    </div>
-
-    </div>
-
-   <video id="recordedVideo" width="400" controls></video>
-
-    <div class="videoContainer">
-
-        <video
-            id="camera-preview"
-            autoplay
-            muted
-            playsinline>
-        </video>
-
-    </div>
-
+    <!-- Fixed Bottom Control Bar Module -->
     <div class="controlBar">
-
-        
-
-        <button>▶ Play</button>
-
-        <button>⏸ Pause</button>
-
-        <button id="recordButton">🔴 Record </button>
-
-        <button>🗑 Delete</button>
-
-        <button>🔄 Re-record</button>
-
+        <button id="playButton" disabled>▶ Play</button>
+        <button id="pauseButton" disabled>⏸ Pause</button>
+        <button id="recordButton">🔴 Record</button>
+        <button id="deleteButton" disabled>🗑 Delete</button>
+        <button id="rerecordButton" disabled>🔄 Re-record</button>
     </div>
 
-    <div class="container">
-
-    <div class="videoContainer">
-         
-        <video id="preview" autoplay muted></video>
-    
-
-    
-         
-        <video id="recordedVideo" width="500" controls></video>
-    </div>
-
-</div>
-
+    <!-- Core Logic Connection Point -->
     <script src="script.js"></script>
 
 </body>
-
 </html>
