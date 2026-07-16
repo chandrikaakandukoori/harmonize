@@ -17,12 +17,75 @@ body {
   position: relative;
 }
 
+
+ 
+
+/* ==========================================================================
+   Central Welcome Landing Screen Layout
+   ========================================================================== */
+
+   #welcome-screen {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: #1a1a1c;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  transition: opacity 0.4s ease, visibility 0.4s ease;
+}
+
+.welcome-content {
+  text-align: center;
+  max-width: 420px;
+  padding: 32px;
+}
+
+.welcome-content h1 {
+  font-size: 72px;
+  font-weight: 700;
+  font-family:'times new roman',times,serif;
+  letter-spacing: -1px;
+  margin-bottom: 12px;
+  color: #ffffff;
+}
+
+
+
+#permissionButton {
+  background-color: #8ab4f8; /* Friendly Material Blue */
+  color: #202124;
+  border: none;
+  padding: 10px 22px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  
+  box-shadow: 0 4px 14px rgba(138, 180, 248, 0.3);
+  transition: transform 0.15s ease, background-color 0.15s ease;
+  margin-top: 32px;
+}
+
+#permissionButton:hover {
+  background-color: #a6c8ff;
+  transform: translateY(-1px);
+}
+
+#permissionButton:active {
+  transform: translateY(1px);
+}
+
 /* Overlay UI Items */
 #app_name {
   position: absolute;
   top: 16px;
   left: 24px;
-  font-family: "Georgia", "Times New Roman", serif;
+  font-family: 'Times New Roman', Times, serif;
+
   font-size: 20px;
   font-weight: 500;
   z-index: 10;
@@ -47,11 +110,14 @@ body {
   top: 16px;
   left: 50%;
   transform: translateX(-50%);
+   
   padding: 6px 16px;
   border-radius: 4px;
   font-weight: bold;
+  font-family: "times new roman", times, serif;
   font-variant-numeric: tabular-nums;
   z-index: 10;
+ 
 }
 
 /* 3-2-1 Fullscreen Screen Count Module */
@@ -71,12 +137,12 @@ body {
   z-index: 100;
 }
 
-/* Workspace Frame Viewport Management */
+/* Workspace Layout Management */
 #workspace {
   flex: 1; 
-  height: calc(100vh - 84px); /* Explicitly reserves exact pixel bounds for controls below */
+  height: calc(100vh - 84px);
   width: 100%;
-  padding: 64px 24px 16px 24px; 
+  padding: 72px 24px 16px 24px; 
   display: flex;
   align-items: center;
   justify-content: center;
@@ -132,7 +198,7 @@ body {
   .grid-6-tiles { grid-template-columns: 1fr 1fr; grid-template-rows: repeat(3, 1fr); }
 }
 
-/* Control Bar Placement Fix */
+/* Fixed Bottom Control Bar Module */
 .controlBar {
   height: 84px;
   background-color: #202124;
