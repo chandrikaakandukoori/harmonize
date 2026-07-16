@@ -1,21 +1,24 @@
-/**
+ /**
  * Harmonize - Video Loop Station
- * Stable Layout, Stream Engine & Sync Countdown
+ * Complete Engine with Gateway Onboarding Screen
  */
 
 // Application State
 let liveStream = null;
 let mediaRecorder = null;
 let recordedChunks = [];
-let recordings = []; // Holds: { id, blobUrl, element, wrapper }
+let recordings = []; 
 let isRecording = false;
 let isPlaying = false;
 let recordingTimer = null;
-let recordingDuration = 90; // Counts DOWN from 90 seconds (1:30)
+let recordingDuration = 90; 
 let targetReRecordId = null; 
 let selectedLoopId = null;
 
 // DOM Selectors
+const welcomeScreen = document.getElementById('welcome-screen');
+const permissionButton = document.getElementById('permissionButton');
+
 const videoGrid = document.getElementById('videoGrid');
 const livePreview = document.getElementById('preview');
 const timerDisplay = document.getElementById('timer');
@@ -32,23 +35,32 @@ const countdownOverlay = document.createElement('div');
 countdownOverlay.id = 'countdown-overlay';
 document.body.appendChild(countdownOverlay);
 
-// Initialize Stream Capture Pipeline
-async function init() {
-  setupEventListeners();
-  await startLivePreview();
-  updateUI();
-}
+// Handle Gateway Permission Validation Actions
+async function handlePermissionActivation() {
+  permissionButton.textContent = "Requesting Access...";
+  permissionButton.disabled = true;
 
-async function startLivePreview() {
   try {
     liveStream = await navigator.mediaDevices.getUserMedia({
       video: { width: { ideal: 1280 }, height: { ideal: 720 } },
       audio: true
     });
+    
     livePreview.srcObject = liveStream;
+
+    // Smoothly fade out the welcome container panel
+    welcomeScreen.style.opacity = '0';
+    setTimeout(() => {
+      welcomeScreen.style.display = 'none';
+      recordButton.disabled = false; // Enable tracking records now
+      updateUI();
+    }, 400);
+
   } catch (err) {
-    console.error("Accessing media hardware failed:", err);
-    statusDisplay.textContent = "Error: Check Camera/Mic Permissions";
+    console.error("Hardware initialization blocked:", err);
+    permissionButton.textContent = "Access Denied. Try Again.";
+    permissionButton.disabled = false;
+    alert("Harmonize requires camera and microphone permissions to function correctly.");
   }
 }
 
@@ -59,7 +71,6 @@ function initiateRecordingSequence() {
     return;
   }
 
-  // CRITICAL FIX: Explicitly stop/pause all existing playback tracks for the countdown duration
   pauseAllLoops();
 
   let countdownValue = 3;
@@ -67,7 +78,6 @@ function initiateRecordingSequence() {
   countdownOverlay.textContent = countdownValue;
   statusDisplay.textContent = "Get Ready...";
   
-  // Disable buttons during countdown phase
   recordButton.disabled = true;
 
   const countdownInterval = setInterval(() => {
@@ -97,15 +107,13 @@ function startRecording() {
   };
 
   mediaRecorder.onstop = handleRecordingStop;
-
-  // CRITICAL FIX: Reset and launch background tracks simultaneously with the new recording run
   playAllLoops();
 
   mediaRecorder.start();
   isRecording = true;
   statusDisplay.textContent = "Recording...";
   
-  recordingDuration = 90; // Reset to 1 minute 30 seconds
+  recordingDuration = 90; 
   updateTimerDisplay();
   
   recordingTimer = setInterval(() => {
@@ -157,13 +165,10 @@ function handleRecordingStop() {
   updateUI();
 }
 
-// Synchronized Multitrack System
 function playAllLoops() {
   isPlaying = true;
   recordings.forEach(rec => {
-    // Skip if we are currently re-recording this exact track
     if (isRecording && rec.id === targetReRecordId) return;
-    
     rec.element.currentTime = 0;
     rec.element.play().catch(() => {});
   });
@@ -176,7 +181,6 @@ function pauseAllLoops() {
   updateUI();
 }
 
-// Tile Modifier System
 function toggleSelectLoop(id) {
   selectedLoopId = (selectedLoopId === id) ? null : id;
   recordings.forEach(rec => {
@@ -208,13 +212,10 @@ function triggerReRecord() {
   initiateRecordingSequence();
 }
 
-// Balanced Grid Engine
 function renderGridLayout() {
-  // Clear out old recorded loop elements only (keep livePreview safe)
   const recordedTiles = videoGrid.querySelectorAll('.recorded-tile');
   recordedTiles.forEach(tile => tile.remove());
 
-  // Show/Hide live preview based on recording parameters
   const showLivePreview = recordings.length === 0 || isRecording;
   
   if (showLivePreview) {
@@ -223,13 +224,10 @@ function renderGridLayout() {
     livePreview.style.display = 'none';
   }
 
-  // Populate dynamic recorded tiles
   let visibleCount = showLivePreview ? 1 : 0;
 
   recordings.forEach(rec => {
-    if (isRecording && rec.id === targetReRecordId) {
-      return;
-    }
+    if (isRecording && rec.id === targetReRecordId) return;
 
     rec.wrapper.innerHTML = ''; 
     rec.wrapper.appendChild(rec.element);
@@ -242,7 +240,6 @@ function renderGridLayout() {
     visibleCount++;
   });
 
-  // Apply layout classifications onto grid structural bounds
   videoGrid.className = ''; 
 
   if (visibleCount === 1) videoGrid.classList.add('grid-1-tile');
@@ -275,6 +272,7 @@ function updateTimerDisplay() {
 }
 
 function setupEventListeners() {
+  permissionButton.onclick = handlePermissionActivation;
   recordButton.onclick = () => isRecording ? stopRecording() : initiateRecordingSequence();
   playButton.onclick = playAllLoops;
   pauseButton.onclick = pauseAllLoops;
@@ -282,4 +280,5 @@ function setupEventListeners() {
   rerecordButton.onclick = triggerReRecord;
 }
 
-window.onload = init;
+// Wait for event registration setup initialization
+window.onload = setupEventListeners;
