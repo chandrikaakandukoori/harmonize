@@ -43,7 +43,7 @@ async function handlePermissionActivation() {
   try {
     // FIX 1: Turn off default audio filters to prevent quality degradation on multiple clips
     liveStream = await navigator.mediaDevices.getUserMedia({
-      video: { width: { ideal: 1280 }, height: { ideal: 720 } },
+      video: { width: { ideal: 1920 }, height: { ideal: 1080 } },
       audio: {
         echoCancellation: false,
         noiseSuppression: false,
@@ -112,9 +112,17 @@ function startRecording() {
   };
 
   mediaRecorder.onstop = handleRecordingStop;
+
+  // FIX: Force all existing loops to reset to 0 right as the recording starts!
+  recordings.forEach(rec => {
+    if (rec.id === targetReRecordId) return;
+    rec.element.currentTime = 0; 
+  });
+
+  // Now play them so they all run in perfect lockstep with the new layer
   playAllLoops();
 
-  // FIX 2: Request small timeslice data intervals to decrease start lag
+  // Request small timeslice data intervals to decrease start lag
   mediaRecorder.start(10);
   isRecording = true;
   statusDisplay.textContent = "Recording...";
@@ -146,10 +154,28 @@ function handleRecordingStop() {
 
   const videoEl = document.createElement('video');
   videoEl.src = blobUrl;
-  videoEl.loop = true;
-  videoEl.playsInline = true;
-  videoEl.muted = false; // Explicitly handle audio execution permission boundaries
   
+  // CHANGED: Disable native browser looping so our master clock logic can manually control resets
+  videoEl.loop = false; 
+  videoEl.playsInline = true;
+  videoEl.muted = false; 
+  
+  // FIX: Monitor this video's playback. If it is the longest track, reset everything when it ends.
+  videoEl.ontimeupdate = () => {
+    if (!isPlaying) return;
+    
+    // Check if this track is currently the longest track in the array
+    const longestTrack = recordings.reduce((max, rec) => 
+      (rec.element.duration > max.element.duration) ? rec : max, recordings[0]);
+
+    // If this element is the longest one and it reaches its end, reset the timeline
+    if (longestTrack && videoEl === longestTrack.element) {
+      if (videoEl.currentTime >= videoEl.duration - 0.05) { // 50ms buffer to catch the ending cleanly
+        resetAndSyncAllLoops();
+      }
+    }
+  };
+
   const wrapper = document.createElement('div');
   wrapper.className = 'video-tile recorded-tile';
 
@@ -172,13 +198,21 @@ function handleRecordingStop() {
   updateUI();
 }
 
+// NEW FUNCTION: Forces every single video track back to the start simultaneously
+function resetAndSyncAllLoops() {
+  recordings.forEach(rec => {
+    rec.element.currentTime = 0;
+    rec.element.play().catch(() => {});
+  });
+}
+
 function playAllLoops() {
   isPlaying = true;
   recordings.forEach(rec => {
     if (isRecording && rec.id === targetReRecordId) return;
     
-    // FIX 2: Apply a small offset (60ms) during active recording rounds to counter hardware output delay
-    rec.element.currentTime = isRecording ? 0.06 : 0;
+    // Apply a small offset (60ms) during active recording rounds to counter hardware output delay
+    rec.element.currentTime = isRecording ? 0.06 : rec.element.currentTime;
     rec.element.play().catch(() => {});
   });
   updateUI();
@@ -222,25 +256,20 @@ function triggerReRecord() {
 }
 
 function renderGridLayout() {
-  // Remove existing recorded tiles so we don't duplicate them on refresh
   const recordedTiles = videoGrid.querySelectorAll('.recorded-tile');
   recordedTiles.forEach(tile => tile.remove());
 
-  // Determine if we should show the live webcam preview
-  // It will ONLY show if there are 0 recordings, OR if you are currently recording a new loop
   const showLivePreview = recordings.length === 0 || isRecording;
   
   if (showLivePreview) {
     livePreview.style.display = 'block';
   } else {
-    livePreview.style.display = 'none'; // Hides the live camera after you finish recording
+    livePreview.style.display = 'none'; 
   }
 
-  // Start counting items from 0 if preview is hidden, or 1 if it's visible
   let visibleCount = showLivePreview ? 1 : 0;
 
   recordings.forEach(rec => {
-    // If we're overwriting this specific loop, hide its old placeholder tile
     if (isRecording && rec.id === targetReRecordId) return;
 
     rec.wrapper.innerHTML = ''; 
@@ -254,22 +283,12 @@ function renderGridLayout() {
     visibleCount++;
   });
 
-  // Clear out the previous layout engine class
   videoGrid.className = ''; 
 
-  // Safely route the class engine depending on how many tiles are actually VISIBLE
-  if (visibleCount === 0) {
-    // Edge case if everything is deleted
-    videoGrid.classList.add('grid-1-tile'); 
-  } else if (visibleCount === 1) {
-    videoGrid.classList.add('grid-1-tile');
-  } else if (visibleCount === 2) {
-    videoGrid.classList.add('grid-2-tiles');
-  } else if (visibleCount <= 4) {
-    videoGrid.classList.add('grid-4-tiles');
-  } else if (visibleCount <= 6) {
-    videoGrid.classList.add('grid-6-tiles');
-  }
+  if (visibleCount === 0 || visibleCount === 1) videoGrid.classList.add('grid-1-tile');
+  else if (visibleCount === 2) videoGrid.classList.add('grid-2-tiles');
+  else if (visibleCount <= 4) videoGrid.classList.add('grid-4-tiles');
+  else if (visibleCount <= 6) videoGrid.classList.add('grid-6-tiles');
 }
 
 function updateUI() {
@@ -283,7 +302,6 @@ function updateUI() {
   }
 
   if (recordings.length === 0 && !isRecording) {
-    statusDisplay.textContent = "Ready";
     timerDisplay.textContent = "01:30";
   }
   renderGridLayout();
@@ -304,5 +322,4 @@ function setupEventListeners() {
   rerecordButton.onclick = triggerReRecord;
 }
 
-// Wait for event registration setup initialization
 window.onload = setupEventListeners;
