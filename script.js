@@ -1,4 +1,4 @@
- /**
+/**
  * Harmonize - Video Loop Station
  * Complete Engine with Gateway Onboarding Screen
  */
@@ -41,9 +41,14 @@ async function handlePermissionActivation() {
   permissionButton.disabled = true;
 
   try {
+    // FIX 1: Turn off default audio filters to prevent quality degradation on multiple clips
     liveStream = await navigator.mediaDevices.getUserMedia({
       video: { width: { ideal: 1280 }, height: { ideal: 720 } },
-      audio: true
+      audio: {
+        echoCancellation: false,
+        noiseSuppression: false,
+        autoGainControl: false
+      }
     });
     
     livePreview.srcObject = liveStream;
@@ -109,7 +114,8 @@ function startRecording() {
   mediaRecorder.onstop = handleRecordingStop;
   playAllLoops();
 
-  mediaRecorder.start();
+  // FIX 2: Request small timeslice data intervals to decrease start lag
+  mediaRecorder.start(10);
   isRecording = true;
   statusDisplay.textContent = "Recording...";
   
@@ -142,6 +148,7 @@ function handleRecordingStop() {
   videoEl.src = blobUrl;
   videoEl.loop = true;
   videoEl.playsInline = true;
+  videoEl.muted = false; // Explicitly handle audio execution permission boundaries
   
   const wrapper = document.createElement('div');
   wrapper.className = 'video-tile recorded-tile';
@@ -169,7 +176,9 @@ function playAllLoops() {
   isPlaying = true;
   recordings.forEach(rec => {
     if (isRecording && rec.id === targetReRecordId) return;
-    rec.element.currentTime = 0;
+    
+    // FIX 2: Apply a small offset (60ms) during active recording rounds to counter hardware output delay
+    rec.element.currentTime = isRecording ? 0.06 : 0;
     rec.element.play().catch(() => {});
   });
   updateUI();
@@ -213,20 +222,25 @@ function triggerReRecord() {
 }
 
 function renderGridLayout() {
+  // Remove existing recorded tiles so we don't duplicate them on refresh
   const recordedTiles = videoGrid.querySelectorAll('.recorded-tile');
   recordedTiles.forEach(tile => tile.remove());
 
+  // Determine if we should show the live webcam preview
+  // It will ONLY show if there are 0 recordings, OR if you are currently recording a new loop
   const showLivePreview = recordings.length === 0 || isRecording;
   
   if (showLivePreview) {
     livePreview.style.display = 'block';
   } else {
-    livePreview.style.display = 'none';
+    livePreview.style.display = 'none'; // Hides the live camera after you finish recording
   }
 
+  // Start counting items from 0 if preview is hidden, or 1 if it's visible
   let visibleCount = showLivePreview ? 1 : 0;
 
   recordings.forEach(rec => {
+    // If we're overwriting this specific loop, hide its old placeholder tile
     if (isRecording && rec.id === targetReRecordId) return;
 
     rec.wrapper.innerHTML = ''; 
@@ -240,12 +254,22 @@ function renderGridLayout() {
     visibleCount++;
   });
 
+  // Clear out the previous layout engine class
   videoGrid.className = ''; 
 
-  if (visibleCount === 1) videoGrid.classList.add('grid-1-tile');
-  else if (visibleCount === 2) videoGrid.classList.add('grid-2-tiles');
-  else if (visibleCount <= 4) videoGrid.classList.add('grid-4-tiles');
-  else if (visibleCount <= 6) videoGrid.classList.add('grid-6-tiles');
+  // Safely route the class engine depending on how many tiles are actually VISIBLE
+  if (visibleCount === 0) {
+    // Edge case if everything is deleted
+    videoGrid.classList.add('grid-1-tile'); 
+  } else if (visibleCount === 1) {
+    videoGrid.classList.add('grid-1-tile');
+  } else if (visibleCount === 2) {
+    videoGrid.classList.add('grid-2-tiles');
+  } else if (visibleCount <= 4) {
+    videoGrid.classList.add('grid-4-tiles');
+  } else if (visibleCount <= 6) {
+    videoGrid.classList.add('grid-6-tiles');
+  }
 }
 
 function updateUI() {
